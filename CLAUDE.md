@@ -19,4 +19,4 @@
 - [ ] 瀏覽器前端介面
 
 ## 目前進度
-Step 00: 專案初始化完成
+Step 01: Gin HTTP server 啟動成功（port 8080）
