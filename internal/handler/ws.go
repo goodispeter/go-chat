@@ -45,6 +45,7 @@ func (h *WsHandler) HandleWebSocket(c *gin.Context) {
 	h.hub.Broadcast <- []byte(fmt.Sprintf("[System] %s join chat room", name))
 
 	go h.readPump(conn, client)
+	go h.writePump(conn, client)
 }
 
 func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
@@ -57,7 +58,7 @@ func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
 		if err != nil {
 			break
 		}
-		fromatted := fmt.Sprintf("%s:%s", client.Name, string(message))
+		fromatted := fmt.Sprintf("%s: %s", client.Name, string(message))
 		h.hub.Broadcast <- []byte(fromatted)
 	}
 }

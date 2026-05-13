@@ -3,6 +3,7 @@ package main
 import (
 	"go-chat/internal/chat"
 	"go-chat/internal/handler"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,10 +15,11 @@ func main() {
 	ws := handler.NewWsHandler(hub)
 
 	r := gin.Default()
+	r.StaticFS("/web", http.Dir("./web"))
 	r.GET("/", func(c *gin.Context) {
-		c.String(200, "go-chat is running")
+		c.Redirect(http.StatusMovedPermanently, "/web/index.html")
 	})
-	r.GET("/ws", ws.HandleWebSocket)
 
+	r.GET("/ws", ws.HandleWebSocket)
 	r.Run(":8080")
 }
