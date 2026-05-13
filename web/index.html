@@ -76,10 +76,17 @@
         }
 
         function addMessage(text) {
+            // 線上人數訊息 → 更新 header，不顯示在聊天區
+            if (text.startsWith('[System] Online:')) {
+                const count = text.split(':').pop().trim();
+                document.getElementById('online').textContent = 'Online: ' + count;
+                return;
+            }
+
             const div = document.createElement('div');
             div.className = 'msg';
 
-            if (text.startsWith('[系統]')) {
+            if (text.startsWith('[System]')) {
                 div.classList.add('system');
                 div.textContent = text;
             } else {

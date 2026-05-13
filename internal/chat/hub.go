@@ -1,6 +1,9 @@
 package chat
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type Client struct {
 	Name string
@@ -24,30 +27,39 @@ func NewHub() *Hub {
 	}
 }
 
+func (h *Hub) sendAll(message []byte) {
+	for client := range h.Clients {
+		select {
+		case client.Send <- message:
+		default:
+			close(client.Send)
+			delete(h.Clients, client)
+		}
+	}
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
 			h.mu.Lock()
 			h.Clients[client] = true
+			h.sendAll(fmt.Appendf(nil, "[System] %s join chat room", client.Name))
+			h.sendAll(fmt.Appendf(nil, "[System] Online: %d", len(h.Clients)))
 			h.mu.Unlock()
+
 		case client := <-h.Unregister:
 			h.mu.Lock()
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
 				close(client.Send)
 			}
+			h.sendAll(fmt.Appendf(nil, "[System] %s leave the chat room", client.Name))
+			h.sendAll(fmt.Appendf(nil, "[System] Online: %d", len(h.Clients)))
 			h.mu.Unlock()
 		case message := <-h.Broadcast:
 			h.mu.Lock()
-			for client := range h.Clients {
-				select {
-				case client.Send <- message:
-				default:
-					close(client.Send)
-					delete(h.Clients, client)
-				}
-			}
+			h.sendAll(message)
 			h.mu.Unlock()
 		}
 	}

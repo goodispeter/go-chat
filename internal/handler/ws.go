@@ -42,8 +42,6 @@ func (h *WsHandler) HandleWebSocket(c *gin.Context) {
 
 	h.hub.Register <- client
 
-	h.hub.Broadcast <- []byte(fmt.Sprintf("[System] %s join chat room", name))
-
 	go h.readPump(conn, client)
 	go h.writePump(conn, client)
 }
@@ -51,7 +49,6 @@ func (h *WsHandler) HandleWebSocket(c *gin.Context) {
 func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
 	defer func() {
 		h.hub.Unregister <- client
-		h.hub.Broadcast <- []byte(fmt.Sprintf("[System] %s leave the chat room", client.Name))
 	}()
 	for {
 		_, message, err := conn.ReadMessage()
