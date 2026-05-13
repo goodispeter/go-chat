@@ -19,4 +19,4 @@
 - [ ] 瀏覽器前端介面
 
 ## 目前進度
-Step 01: Gin HTTP server 啟動成功（port 8080）
+Step 02: WebSocket 核心架構完成（Hub + Handler，編譯通過）
