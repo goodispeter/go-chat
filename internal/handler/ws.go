@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-chat/internal/chat"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -55,7 +56,7 @@ func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
 		if err != nil {
 			break
 		}
-		fromatted := fmt.Sprintf("%s: %s", client.Name, string(message))
+		fromatted := fmt.Sprintf("[%s]%s: %s", time.Now().Format("15:04:05"), client.Name, string(message))
 		h.hub.Broadcast <- []byte(fromatted)
 	}
 }
