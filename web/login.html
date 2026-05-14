@@ -399,7 +399,7 @@
 
                 // Save token and redirect to chat
                 localStorage.setItem('token', data.token);
-                window.location.href = '/web/chat.html';
+                window.location.href = '/web/app.html';
             } catch (err) {
                 showAlert('Network error. Please try again.', 'error');
             } finally {
@@ -470,7 +470,7 @@
                     const loginData = await loginRes.json();
                     if (loginRes.ok) {
                         localStorage.setItem('token', loginData.token);
-                        window.location.href = '/web/chat.html';
+                        window.location.href = '/web/app.html';
                     }
                 }, 800);
             } catch (err) {
@@ -495,7 +495,7 @@
 
         // If already has token, redirect to chat
         if (localStorage.getItem('token')) {
-            window.location.href = '/web/chat.html';
+            window.location.href = '/web/app.html';
         }
     </script>
 </body>
