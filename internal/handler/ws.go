@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-chat/internal/chat"
 	"net/http"
@@ -37,8 +38,9 @@ func (h *WsHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	client := &chat.Client{
-		Name: username,
-		Send: make(chan []byte, 256),
+		UserID: uint(c.GetFloat64("user_id")),
+		Name:   username,
+		Send:   make(chan []byte, 256),
 	}
 
 	h.hub.Register <- client
@@ -56,8 +58,21 @@ func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
 		if err != nil {
 			break
 		}
-		fromatted := fmt.Sprintf("[%s]%s: %s", time.Now().Format("15:04:05"), client.Name, string(message))
-		h.hub.Broadcast <- []byte(fromatted)
+		var msg struct {
+			Type string `json:"type"`
+			To   uint   `json:"to"`
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal(message, &msg); err != nil {
+			continue
+		}
+		if msg.Type == "pm" && msg.To > 0 && msg.Text != "" {
+			timestamp := time.Now().Format("15:04:05")
+			formatted := fmt.Sprintf("[PM:%s:%s] %s", client.Name, timestamp, msg.Text)
+			h.hub.SendToUser(msg.To, []byte(formatted))
+			h.hub.SendToUser(client.UserID, []byte(formatted))
+		}
+
 	}
 }
 

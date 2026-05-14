@@ -570,9 +570,9 @@
         let ws;
         let token = localStorage.getItem('token');
         let currentUser = '';
-        let activeChat = null; // username of who we're chatting with
-        let conversations = {}; // { username: [messages] }
-        let onlineUsers = [];
+        let activeChat = null; // { id, name } of who we're chatting with
+        let conversations = {}; // { name: [messages] }
+        let onlineUsers = []; // [{ id, name }]
 
         const avatarColors = [
             'linear-gradient(135deg, #6c5ce7, #a78bfa)',
@@ -628,10 +628,13 @@
         }
 
         function handleMessage(text) {
-            // Online user list: [System] Users: user1,user2,user3
+            // Online user list: [System] Users: 1:Alice,2:Bob,3:Carol
             if (text.startsWith('[System] Users:')) {
-                const names = text.substring('[System] Users:'.length).trim();
-                onlineUsers = names ? names.split(',').filter(n => n !== currentUser) : [];
+                const raw = text.substring('[System] Users:'.length).trim();
+                onlineUsers = raw ? raw.split(',').map(entry => {
+                    const [id, name] = entry.split(':');
+                    return { id: parseInt(id), name };
+                }).filter(u => u.name !== currentUser) : [];
                 document.getElementById('onlineCount').textContent = onlineUsers.length;
                 renderUserList();
                 return;
@@ -649,22 +652,22 @@
                 const sender = pmMatch[1];
                 const time = pmMatch[2] || '';
                 const msg = pmMatch[3];
-                const peer = sender === currentUser ? activeChat : sender;
-                if (!peer) return;
+                const peerName = sender === currentUser ? (activeChat ? activeChat.name : null) : sender;
+                if (!peerName) return;
 
-                if (!conversations[peer]) conversations[peer] = [];
-                conversations[peer].push({
+                if (!conversations[peerName]) conversations[peerName] = [];
+                conversations[peerName].push({
                     from: sender,
                     text: msg,
                     time: time,
                     mine: sender === currentUser,
                 });
 
-                if (activeChat === peer) {
+                if (activeChat && activeChat.name === peerName) {
                     renderMessages();
                 } else {
                     // Show unread badge
-                    const item = document.querySelector(`.user-item[data-user="${peer}"] .user-item-badge`);
+                    const item = document.querySelector(`.user-item[data-user="${peerName}"] .user-item-badge`);
                     if (item) {
                         item.classList.add('visible');
                         const count = parseInt(item.textContent || '0') + 1;
@@ -686,22 +689,23 @@
                 return;
             }
 
-            onlineUsers.forEach(name => {
+            onlineUsers.forEach(user => {
                 const item = document.createElement('div');
-                item.className = 'user-item' + (name === prevActive ? ' active' : '');
-                item.dataset.user = name;
-                item.onclick = () => openChat(name);
+                item.className = 'user-item' + (activeChat && user.name === activeChat.name ? ' active' : '');
+                item.dataset.user = user.name;
+                item.dataset.userId = user.id;
+                item.onclick = () => openChat(user);
 
-                const lastMsg = conversations[name]?.slice(-1)[0];
+                const lastMsg = conversations[user.name]?.slice(-1)[0];
                 const preview = lastMsg ? (lastMsg.mine ? 'You: ' : '') + lastMsg.text : 'Click to chat';
 
                 item.innerHTML = `
-                    <div class="user-item-avatar" style="background:${getColor(name)}">
-                        ${getInitial(name)}
+                    <div class="user-item-avatar" style="background:${getColor(user.name)}">
+                        ${getInitial(user.name)}
                         <div class="user-item-status"></div>
                     </div>
                     <div class="user-item-info">
-                        <div class="user-item-name">${name}</div>
+                        <div class="user-item-name">${user.name}</div>
                         <div class="user-item-preview">${preview}</div>
                     </div>
                     <div class="user-item-badge"></div>
@@ -711,30 +715,30 @@
         }
 
         // ==================== Chat ====================
-        function openChat(username) {
-            activeChat = username;
-            if (!conversations[username]) conversations[username] = [];
+        function openChat(user) {
+            activeChat = user; // { id, name }
+            if (!conversations[user.name]) conversations[user.name] = [];
 
             // UI
             document.getElementById('chatEmpty').style.display = 'none';
             document.getElementById('chatHeader').classList.add('visible');
             document.getElementById('chatMessages').classList.add('visible');
             document.getElementById('chatInput').classList.add('visible');
-            document.getElementById('chatName').textContent = username;
+            document.getElementById('chatName').textContent = user.name;
             const av = document.getElementById('chatAvatar');
-            av.textContent = getInitial(username);
-            av.style.background = getColor(username);
+            av.textContent = getInitial(user.name);
+            av.style.background = getColor(user.name);
 
             // Clear unread badge
-            const badge = document.querySelector(`.user-item[data-user="${username}"] .user-item-badge`);
+            const badge = document.querySelector(`.user-item[data-user="${user.name}"] .user-item-badge`);
             if (badge) { badge.classList.remove('visible'); badge.textContent = ''; }
 
             // Mark active in list
             document.querySelectorAll('.user-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.user === username);
+                el.classList.toggle('active', el.dataset.user === user.name);
             });
 
-            renderMessages();
+            renderMessages(user.name);
             document.getElementById('msgInput').focus();
 
             // Mobile: show chat, hide sidebar
@@ -758,11 +762,12 @@
             }
         }
 
-        function renderMessages() {
+        function renderMessages(name) {
+            const chatName = name || (activeChat ? activeChat.name : null);
             const container = document.getElementById('chatMessages');
             container.innerHTML = '';
 
-            const msgs = conversations[activeChat] || [];
+            const msgs = conversations[chatName] || [];
             msgs.forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'msg ' + (m.mine ? 'msg-mine' : 'msg-other');
@@ -790,8 +795,12 @@
             const msg = input.value.trim();
             if (!msg || !ws || ws.readyState !== WebSocket.OPEN || !activeChat) return;
 
-            // Send private message: /pm username message
-            ws.send(`/pm ${activeChat} ${msg}`);
+            // Send private message as JSON
+            ws.send(JSON.stringify({
+                type: 'pm',
+                to: activeChat.id,
+                text: msg,
+            }));
             input.value = '';
         }
 
