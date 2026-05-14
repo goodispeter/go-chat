@@ -1,5 +1,10 @@
 # Step 06c: 註冊/登入 API（三層架構）
 
+## 安裝的套件
+```bash
+go get golang.org/x/crypto/bcrypt
+```
+
 ## 做了什麼
 1. `internal/repository/user.go` — DB 操作
 2. `internal/service/auth.go` — 業務邏輯（bcrypt 加密/比對）

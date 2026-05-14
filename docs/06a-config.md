@@ -1,5 +1,10 @@
 # Step 06a: Config 設定管理
 
+## 安裝的套件
+```bash
+go get github.com/joho/godotenv
+```
+
 ## 做了什麼
 1. 建立 `internal/config/config.go` 統一管理設定
 2. 用 godotenv 載入 `.env` 檔案

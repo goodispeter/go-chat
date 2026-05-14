@@ -1,5 +1,11 @@
 # Step 06b: PostgreSQL 連線 + User Model
 
+## 安裝的套件
+```bash
+go get gorm.io/gorm
+go get gorm.io/driver/postgres
+```
+
 ## 做了什麼
 1. `internal/database/db.go` — GORM 連線 PostgreSQL
 2. `internal/model/user.go` — User struct

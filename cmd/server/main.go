@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-chat/internal/chat"
+	"go-chat/internal/config"
 	"go-chat/internal/handler"
 	"net/http"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func main() {
+	config.Load()
 	hub := chat.NewHub()
 	go hub.Run()
 
