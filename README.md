@@ -159,4 +159,12 @@ go-chat/
 
 完整的學習歷程和 Java → Go 對照表：
 
-**[打開學習總結 →](docs/journey/index.html)**
+**[打開學習總結 →](https://goodispeter.github.io/go-chat/journey/index.html)**
+
+| 頁面 | 內容 |
+|------|------|
+| [Timeline](https://goodispeter.github.io/go-chat/journey/index.html) | 時間軸總覽 |
+| [Phase 1: Gin + WebSocket](https://goodispeter.github.io/go-chat/journey/01-gin-websocket.html) | Hub pattern、select、goroutine |
+| [Phase 2: Auth + JWT](https://goodispeter.github.io/go-chat/journey/02-auth-jwt.html) | 三層架構、bcrypt、GORM |
+| [Phase 3: Private Messaging](https://goodispeter.github.io/go-chat/journey/03-private-messaging.html) | JSON 協定、O(1) 查找、持久化 |
+| [Java → Go Cheatsheet](https://goodispeter.github.io/go-chat/journey/cheatsheet.html) | 完整對照表（7 大分類） |
