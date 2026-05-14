@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java → Go Cheatsheet</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0a0a0f; --surface: #12121a; --elevated: #1a1a26; --border: #2a2a3a; --border-s: #1e1e2e; --text: #e8e6f0; --text2: #8888a0; --muted: #55556a; --accent: #6c5ce7; --accent2: #a78bfa; --pink: #e74c6f; --green: #2ed573; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 880px; margin: 0 auto; padding: 3rem 2rem; }
+        h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+        .subtitle { color: var(--text2); margin-bottom: 2rem; font-weight: 300; }
+        h2 { color: var(--accent2); font-size: 1.1rem; margin: 2.5rem 0 0.8rem; border-bottom: 1px solid var(--border-s); padding-bottom: 0.5rem; }
+        table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 1.5rem; font-size: 0.85rem; }
+        th, td { padding: 0.5rem 0.8rem; text-align: left; border: 1px solid var(--border-s); }
+        th { background: var(--surface); color: var(--accent2); font-weight: 600; }
+        td { color: var(--text2); }
+        td code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text); background: var(--elevated); padding: 0.1rem 0.3rem; border-radius: 3px; }
+        .section-note { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
+        .nav { display: flex; justify-content: space-between; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border-s); }
+        .nav a { color: var(--accent2); text-decoration: none; font-size: 0.9rem; }
+        @media (max-width: 480px) {
+            .container { padding: 2rem 1rem; }
+            table { font-size: 0.78rem; }
+            td code { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Java &rarr; Go Cheatsheet</h1>
+    <p class="subtitle">在 Go Chat 專案中實際用到的所有對照</p>
+
+    <h2>語言基礎</h2>
+    <table>
+        <tr><th>Java</th><th>Go</th></tr>
+        <tr><td><code>class Todo</code></td><td><code>type Todo struct</code></td></tr>
+        <tr><td><code>public</code> / <code>private</code></td><td>大寫開頭 / 小寫開頭</td></tr>
+        <tr><td><code>new Constructor()</code></td><td><code>NewXxx()</code> function</td></tr>
+        <tr><td><code>this</code></td><td>method receiver <code>(s *Store)</code></td></tr>
+        <tr><td><code>implements Interface</code></td><td>隱式（有對應 method 就算）</td></tr>
+        <tr><td><code>ArrayList&lt;T&gt;</code></td><td><code>[]T</code>（slice）</td></tr>
+        <tr><td><code>HashMap&lt;K,V&gt;</code></td><td><code>map[K]V</code></td></tr>
+        <tr><td><code>null</code></td><td><code>nil</code></td></tr>
+        <tr><td><code>try-catch</code></td><td><code>if err != nil</code></td></tr>
+        <tr><td><code>throw new Exception()</code></td><td><code>return fmt.Errorf()</code></td></tr>
+        <tr><td><code>finally</code></td><td><code>defer</code></td></tr>
+        <tr><td><code>Thread</code></td><td><code>goroutine</code>（<code>go func()</code>）</td></tr>
+        <tr><td><code>BlockingQueue</code></td><td><code>channel</code>（<code>chan T</code>）</td></tr>
+        <tr><td><code>synchronized</code></td><td><code>sync.Mutex</code></td></tr>
+        <tr><td><code>CompletableFuture</code></td><td><code>goroutine + channel</code></td></tr>
+        <tr><td><code>Optional&lt;T&gt;</code></td><td>多值回傳 <code>(T, error)</code></td></tr>
+    </table>
+
+    <h2>HTTP 框架：Spring → Gin</h2>
+    <table>
+        <tr><th>Spring</th><th>Gin</th></tr>
+        <tr><td><code>@RestController</code></td><td><code>r.GET("/path", handler)</code></td></tr>
+        <tr><td><code>@GetMapping</code> / <code>@PostMapping</code></td><td><code>r.GET</code> / <code>r.POST</code></td></tr>
+        <tr><td><code>@RequestBody</code></td><td><code>c.ShouldBindJSON(&obj)</code></td></tr>
+        <tr><td><code>@PathVariable</code></td><td><code>c.Param("id")</code></td></tr>
+        <tr><td><code>@RequestParam</code></td><td><code>c.Query("name")</code></td></tr>
+        <tr><td><code>ResponseEntity.ok(data)</code></td><td><code>c.JSON(200, data)</code></td></tr>
+        <tr><td><code>@RequestMapping("/api")</code></td><td><code>r.Group("/api")</code></td></tr>
+        <tr><td><code>HttpServletRequest</code></td><td><code>*gin.Context</code></td></tr>
+        <tr><td><code>@Valid</code> / <code>@NotNull</code></td><td><code>binding:"required"</code></td></tr>
+    </table>
+
+    <h2>Middleware：Filter → gin.HandlerFunc</h2>
+    <table>
+        <tr><th>Spring</th><th>Gin</th></tr>
+        <tr><td><code>implements Filter</code></td><td><code>func() gin.HandlerFunc</code></td></tr>
+        <tr><td><code>chain.doFilter(req, res)</code></td><td><code>c.Next()</code></td></tr>
+        <tr><td>不呼叫 <code>chain.doFilter</code></td><td><code>c.Abort()</code></td></tr>
+        <tr><td><code>request.setAttribute()</code></td><td><code>c.Set(key, value)</code></td></tr>
+        <tr><td><code>request.getAttribute()</code></td><td><code>c.GetString(key)</code></td></tr>
+        <tr><td><code>antMatchers("/ws").authenticated()</code></td><td><code>group.Use(JWTAuth())</code></td></tr>
+    </table>
+
+    <h2>ORM：JPA / Hibernate → GORM</h2>
+    <table>
+        <tr><th>JPA</th><th>GORM</th></tr>
+        <tr><td><code>@Entity</code></td><td><code>type User struct</code> + struct tag</td></tr>
+        <tr><td><code>@Id @GeneratedValue</code></td><td><code>gorm:"primaryKey"</code></td></tr>
+        <tr><td><code>@Column(unique = true)</code></td><td><code>gorm:"uniqueIndex"</code></td></tr>
+        <tr><td><code>@JsonIgnore</code></td><td><code>json:"-"</code></td></tr>
+        <tr><td><code>repository.save(entity)</code></td><td><code>DB.Create(&entity)</code></td></tr>
+        <tr><td><code>repository.findById(id)</code></td><td><code>DB.First(&entity, id)</code></td></tr>
+        <tr><td><code>repository.findByUsername(x)</code></td><td><code>DB.Where("username = ?", x).First(&entity)</code></td></tr>
+        <tr><td><code>ddl-auto=update</code></td><td><code>DB.AutoMigrate(&User{})</code></td></tr>
+        <tr><td><code>EntityManagerFactory</code></td><td><code>gorm.Open(postgres.Open(dsn))</code></td></tr>
+    </table>
+
+    <h2>認證：Spring Security → 手動</h2>
+    <table>
+        <tr><th>Spring</th><th>Go</th></tr>
+        <tr><td><code>BCryptPasswordEncoder</code></td><td><code>bcrypt.GenerateFromPassword</code></td></tr>
+        <tr><td><code>Jwts.builder().setClaims()</code></td><td><code>jwt.NewWithClaims(HS256, claims)</code></td></tr>
+        <tr><td><code>Jwts.parser().parseClaimsJws()</code></td><td><code>jwt.Parse(token, keyFunc)</code></td></tr>
+        <tr><td><code>@AuthenticationPrincipal</code></td><td><code>c.GetFloat64("user_id")</code></td></tr>
+        <tr><td><code>SecurityContextHolder</code></td><td><code>gin.Context</code>（request scope）</td></tr>
+        <tr><td><code>ThreadLocal</code></td><td>context 顯式傳遞</td></tr>
+    </table>
+
+    <h2>WebSocket</h2>
+    <table>
+        <tr><th>Java (Spring WebSocket)</th><th>Go (gorilla/websocket)</th></tr>
+        <tr><td><code>@ServerEndpoint</code></td><td><code>upgrader.Upgrade(w, r, nil)</code></td></tr>
+        <tr><td><code>@OnMessage</code></td><td><code>conn.ReadMessage()</code> in readPump goroutine</td></tr>
+        <tr><td><code>@OnClose</code></td><td><code>defer</code> in readPump</td></tr>
+        <tr><td><code>session.getBasicRemote().sendText()</code></td><td><code>conn.WriteMessage()</code> in writePump goroutine</td></tr>
+        <tr><td>容器管理 session</td><td>自己寫 Hub 管理 Client map</td></tr>
+    </table>
+
+    <h2>專案結構</h2>
+    <table>
+        <tr><th>Spring Boot</th><th>Go</th></tr>
+        <tr><td><code>src/main/java/</code></td><td><code>cmd/server/</code>（進入點）+ <code>internal/</code>（業務碼）</td></tr>
+        <tr><td><code>com.example.controller</code></td><td><code>internal/handler/</code></td></tr>
+        <tr><td><code>com.example.service</code></td><td><code>internal/service/</code></td></tr>
+        <tr><td><code>com.example.repository</code></td><td><code>internal/repository/</code></td></tr>
+        <tr><td><code>com.example.model</code></td><td><code>internal/model/</code></td></tr>
+        <tr><td><code>application.yml</code></td><td><code>.env</code> + <code>config/config.go</code></td></tr>
+        <tr><td><code>pom.xml</code> / <code>build.gradle</code></td><td><code>go.mod</code></td></tr>
+        <tr><td><code>@Autowired</code></td><td>手動傳入（constructor injection）</td></tr>
+    </table>
+
+    <h2>開發工具</h2>
+    <table>
+        <tr><th>Java</th><th>Go</th></tr>
+        <tr><td><code>mvn spring-boot:run</code></td><td><code>go run ./cmd/server/</code></td></tr>
+        <tr><td><code>mvn package</code></td><td><code>go build -o app.exe ./cmd/server/</code></td></tr>
+        <tr><td><code>mvn test</code></td><td><code>go test ./...</code></td></tr>
+        <tr><td><code>gradle dependencies</code></td><td><code>go mod tidy</code></td></tr>
+        <tr><td>需要 JVM 才能跑</td><td>編譯成原生二進位，零依賴</td></tr>
+    </table>
+
+    <div class="nav">
+        <a href="03-private-messaging.html">&larr; Phase 3: Private Messaging</a>
+        <a href="index.html">Back to Timeline &rarr;</a>
+    </div>
+</div>
+</body>
+</html>

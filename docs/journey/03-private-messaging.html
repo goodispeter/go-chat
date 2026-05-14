@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3: Private Messaging</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0a0a0f; --surface: #12121a; --elevated: #1a1a26; --border: #2a2a3a; --border-s: #1e1e2e; --text: #e8e6f0; --text2: #8888a0; --muted: #55556a; --accent: #6c5ce7; --accent2: #a78bfa; --pink: #e74c6f; --green: #2ed573; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 800px; margin: 0 auto; padding: 3rem 2rem; }
+        h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+        .subtitle { color: var(--text2); margin-bottom: 2rem; font-weight: 300; }
+        h2 { color: var(--accent2); font-size: 1.15rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid var(--border-s); padding-bottom: 0.5rem; }
+        h3 { color: var(--text); font-size: 0.95rem; margin: 1.5rem 0 0.5rem; }
+        p, li { color: var(--text2); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        ul { padding-left: 1.5rem; }
+        pre { background: var(--surface); border: 1px solid var(--border-s); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; font-size: 0.85rem; }
+        code { font-family: 'JetBrains Mono', monospace; color: var(--text); }
+        .inline-code { background: var(--elevated); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+        .note { background: rgba(108,92,231,0.08); border-left: 3px solid var(--accent); padding: 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+        .note p { color: var(--text2); margin: 0; }
+        .diagram { background: var(--surface); border: 1px solid var(--border-s); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text2); white-space: pre; overflow-x: auto; line-height: 1.6; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+        th, td { padding: 0.5rem 0.8rem; text-align: left; border: 1px solid var(--border-s); }
+        th { background: var(--surface); color: var(--accent2); }
+        .nav { display: flex; justify-content: space-between; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border-s); }
+        .nav a { color: var(--accent2); text-decoration: none; font-size: 0.9rem; }
+        @media (max-width: 480px) { .container { padding: 2rem 1rem; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Phase 3: 私訊與持久化</h1>
+    <p class="subtitle">Step 07 — 08 | 從公開聊天室進化成 1 對 1 私訊</p>
+
+    <h2>架構變化</h2>
+    <div class="diagram">之前（公開聊天室）：
+  User A 說話 → Hub.Broadcast → 所有人收到
+
+現在（私訊）：
+  User A 對 B 說話 → Hub.SendToUser(B) → 只有 B 收到
+                   → Hub.SendToUser(A) → A 自己也收到（顯示在畫面上）</div>
+
+    <h2>WebSocket 訊息協定</h2>
+
+    <h3>前端 → 後端（JSON）</h3>
+    <pre><code>// 前端送出
+ws.send(JSON.stringify({
+    type: "pm",
+    to: 1,        // 對方的 userID
+    text: "你好"
+}));</code></pre>
+
+    <h3>後端 → 前端（字串）</h3>
+    <pre><code>// 在線名單
+[System] Users: 1:Alice,2:Bob,3:Carol
+
+// 私訊
+[PM:Alice:14:30:05] 你好</code></pre>
+
+    <div class="note"><p>為什麼不全用 JSON？在線名單和系統訊息用字串格式更簡單。私訊的發送端用 JSON 是因為需要帶型別（userID 是 uint），字串解析會很醜。</p></div>
+
+    <h2>O(1) 用戶查找</h2>
+
+    <h3>為什麼需要兩個 map</h3>
+    <pre><code>type Hub struct {
+    Clients         map[*Client]bool     // 遍歷所有人（廣播用）
+    ClientsByUserID map[uint]*Client     // O(1) 查找（私訊用）
+}</code></pre>
+
+    <table>
+        <tr><th>操作</th><th>用哪個 map</th><th>複雜度</th></tr>
+        <tr><td>廣播在線名單</td><td>Clients（遍歷）</td><td>O(n)</td></tr>
+        <tr><td>私訊指定用戶</td><td>ClientsByUserID（查找）</td><td>O(1)</td></tr>
+        <tr><td>Register</td><td>兩個都加</td><td>O(1)</td></tr>
+        <tr><td>Unregister</td><td>兩個都刪</td><td>O(1)</td></tr>
+    </table>
+
+    <h3>SendToUser</h3>
+    <pre><code>func (h *Hub) SendToUser(userID uint, message []byte) {
+    h.mu.Lock()
+    defer h.mu.Unlock()
+
+    if client, ok := h.ClientsByUserID[userID]; ok {
+        select {
+        case client.Send &lt;- message:
+        default:  // client 卡住了，跳過
+        }
+    }
+}</code></pre>
+
+    <h2>聊天記錄持久化</h2>
+
+    <h3>Message Model</h3>
+    <pre><code>type Message struct {
+    ID         uint
+    SenderID   uint       // 誰送的
+    ReceiverID uint       // 送給誰
+    Content    string     // 訊息內容
+    CreatedAt  time.Time  // 自動填入
+}</code></pre>
+
+    <h3>查詢兩人對話</h3>
+    <pre><code>DB.Where(
+    "(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
+    userID, peerID, peerID, userID,
+).Order("created_at ASC").Limit(100).Find(&messages)</code></pre>
+    <p>A 發給 B 的 + B 發給 A 的，按時間排序，最多 100 筆。</p>
+
+    <h3>資料流</h3>
+    <div class="diagram">發訊息：
+  前端 ws.send(JSON) → readPump 解析
+    → repository.SaveMessage()  存 DB
+    → hub.SendToUser(對方)      即時推送
+    → hub.SendToUser(自己)      自己也看到
+
+開聊天：
+  前端 fetch /api/messages?peer_id=1
+    → handler 從 JWT 取 userID
+    → repository.GetMessages(userID, peerID, 100)
+    → 回傳 JSON → 前端渲染歷史訊息</div>
+
+    <div class="note"><p>歷史訊息只在第一次開聊天時拉。之後的新訊息由 WebSocket 即時推送，不重複查 DB。</p></div>
+
+    <h2>JWT claims 的 float64 問題</h2>
+    <pre><code>// JWT MapClaims 把所有數字解析成 float64（JSON 規格）
+UserID: uint(c.GetFloat64("user_id"))</code></pre>
+    <p>JSON 沒有整數型別，所有數字都是浮點數。所以從 JWT claims 取出後要轉型。</p>
+
+    <div class="nav">
+        <a href="02-auth-jwt.html">&larr; Phase 2: Auth + JWT</a>
+        <a href="cheatsheet.html">Java → Go Cheatsheet &rarr;</a>
+    </div>
+</div>
+</body>
+</html>

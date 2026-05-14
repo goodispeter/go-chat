@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 2: Auth + JWT</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0a0a0f; --surface: #12121a; --elevated: #1a1a26; --border: #2a2a3a; --border-s: #1e1e2e; --text: #e8e6f0; --text2: #8888a0; --muted: #55556a; --accent: #6c5ce7; --accent2: #a78bfa; --pink: #e74c6f; --green: #2ed573; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 800px; margin: 0 auto; padding: 3rem 2rem; }
+        h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+        .subtitle { color: var(--text2); margin-bottom: 2rem; font-weight: 300; }
+        h2 { color: var(--accent2); font-size: 1.15rem; margin: 2.5rem 0 1rem; border-bottom: 1px solid var(--border-s); padding-bottom: 0.5rem; }
+        h3 { color: var(--text); font-size: 0.95rem; margin: 1.5rem 0 0.5rem; }
+        p, li { color: var(--text2); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        ul { padding-left: 1.5rem; }
+        pre { background: var(--surface); border: 1px solid var(--border-s); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; font-size: 0.85rem; }
+        code { font-family: 'JetBrains Mono', monospace; color: var(--text); }
+        .inline-code { background: var(--elevated); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+        .note { background: rgba(108,92,231,0.08); border-left: 3px solid var(--accent); padding: 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+        .note p { color: var(--text2); margin: 0; }
+        .diagram { background: var(--surface); border: 1px solid var(--border-s); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text2); white-space: pre; overflow-x: auto; line-height: 1.6; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+        th, td { padding: 0.5rem 0.8rem; text-align: left; border: 1px solid var(--border-s); }
+        th { background: var(--surface); color: var(--accent2); }
+        .nav { display: flex; justify-content: space-between; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border-s); }
+        .nav a { color: var(--accent2); text-decoration: none; font-size: 0.9rem; }
+        @media (max-width: 480px) { .container { padding: 2rem 1rem; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Phase 2: Auth + JWT + 資料庫</h1>
+    <p class="subtitle">Step 06a — 06g | 從記憶體到持久化，從匿名到認證</p>
+
+    <h2>三層架構</h2>
+    <div class="diagram">handler/auth.go    ← HTTP 進出（解析 request、回 JSON）
+    ↓ 呼叫
+service/auth.go    ← 業務邏輯（bcrypt 加密、JWT 產生）
+    ↓ 呼叫
+repository/user.go ← DB 操作（GORM CRUD）</div>
+
+    <table>
+        <tr><th>層</th><th>知道什麼</th><th>不知道什麼</th><th>Java 對應</th></tr>
+        <tr><td>handler</td><td>HTTP、gin.Context</td><td>密碼怎麼加密、SQL</td><td>@RestController</td></tr>
+        <tr><td>service</td><td>bcrypt、JWT、業務規則</td><td>HTTP 狀態碼</td><td>@Service</td></tr>
+        <tr><td>repository</td><td>GORM、SQL</td><td>為什麼要查這筆</td><td>@Repository</td></tr>
+    </table>
+
+    <div class="note"><p>不是每個功能都需要 service 層。如果 handler 和 repository 之間沒有邏輯（GetMessages），直接呼叫 repository。需要時才抽象。</p></div>
+
+    <h2>bcrypt 密碼加密</h2>
+    <pre><code>// 加密（每次產生不同 hash，自動加鹽）
+hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+// 比對（從 hash 裡取出 salt 再比）
+bcrypt.CompareHashAndPassword(hash, []byte(inputPassword))</code></pre>
+    <p>不用自己管理 salt — salt 嵌在 hash 字串裡，重啟 server、換機器都能比對。</p>
+
+    <h2>JWT 認證流程</h2>
+    <div class="diagram">POST /api/register  → 建立 user（bcrypt hash 密碼）
+POST /api/login     → 比對密碼 → 產生 JWT token → 回傳給前端
+GET  /ws            → JWT middleware 驗證 token → 放行
+GET  /api/messages  → JWT middleware 驗證 token → 放行</div>
+
+    <h3>JWT Token 結構</h3>
+    <pre><code>eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxfQ.xxxxx
+       header              payload            signature</code></pre>
+    <p>payload 裡放 user_id、username、exp（過期時間）。用 HS256 對稱加密簽名。</p>
+
+    <h3>HS256 vs ES256</h3>
+    <table>
+        <tr><th></th><th>HS256（我們用的）</th><th>ES256</th></tr>
+        <tr><td>加密方式</td><td>對稱（一個 secret）</td><td>非對稱（公私鑰）</td></tr>
+        <tr><td>適用場景</td><td>單一 server</td><td>微服務（各服務只需公鑰驗證）</td></tr>
+    </table>
+
+    <h2>Gin Middleware</h2>
+
+    <h3>middleware 格式</h3>
+    <pre><code>func JWTAuth() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // 驗證...
+        c.Set("username", claims["username"])  // 存值給下游
+        c.Next()    // 放行
+        // 或
+        c.Abort()   // 攔截
+    }
+}</code></pre>
+
+    <h3>路由群組控制 middleware</h3>
+    <pre><code>// 公開
+api := r.Group("/api")
+api.POST("/register", handler.Register)
+
+// 受保護
+protected := r.Group("/")
+protected.Use(middleware.JWTAuth())
+protected.GET("/ws", ws.HandleWebSocket)</code></pre>
+    <p>等於 Spring 的 <code class="inline-code">antMatchers("/ws").authenticated()</code>。</p>
+
+    <h2>GORM 對照</h2>
+    <table>
+        <tr><th>Java (JPA / Hibernate)</th><th>Go (GORM)</th></tr>
+        <tr><td><code>@Entity</code></td><td><code>type User struct</code> + struct tag</td></tr>
+        <tr><td><code>@Column(unique = true)</code></td><td><code>gorm:"uniqueIndex"</code></td></tr>
+        <tr><td><code>@JsonIgnore</code></td><td><code>json:"-"</code></td></tr>
+        <tr><td><code>repository.save(user)</code></td><td><code>DB.Create(&user)</code></td></tr>
+        <tr><td><code>findByUsername(x)</code></td><td><code>DB.Where("username = ?", x).First(&user)</code></td></tr>
+        <tr><td><code>ddl-auto=update</code></td><td><code>DB.AutoMigrate(&User{})</code></td></tr>
+    </table>
+
+    <h2>WebSocket 無法帶 Authorization Header</h2>
+    <p>瀏覽器的 <code class="inline-code">new WebSocket()</code> 不支援自定義 header。解法：query parameter 傳 token。</p>
+    <pre><code>ws = new WebSocket(`ws://host/ws?token=${token}`);</code></pre>
+    <p>middleware 先查 header，沒有再查 query parameter。</p>
+
+    <div class="nav">
+        <a href="01-gin-websocket.html">&larr; Phase 1: WebSocket</a>
+        <a href="03-private-messaging.html">Phase 3: Private Messaging &rarr;</a>
+    </div>
+</div>
+</body>
+</html>

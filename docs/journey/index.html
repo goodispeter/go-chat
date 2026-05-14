@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat — Learning Journey</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0a0a0f; --surface: #12121a; --elevated: #1a1a26; --border: #2a2a3a; --border-s: #1e1e2e; --text: #e8e6f0; --text2: #8888a0; --muted: #55556a; --accent: #6c5ce7; --accent2: #a78bfa; --pink: #e74c6f; --green: #2ed573; --blue: #74b9ff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 880px; margin: 0 auto; padding: 3rem 2rem; }
+
+        /* Header */
+        .hero { text-align: center; margin-bottom: 3rem; }
+        .hero-logo { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-sub { color: var(--text2); font-size: 1rem; margin-top: 0.5rem; font-weight: 300; }
+        .hero-stats { display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem; }
+        .stat { text-align: center; }
+        .stat-num { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700; color: var(--accent2); }
+        .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Nav */
+        .nav { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 3rem; }
+        .nav a { padding: 0.4rem 1rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--border-s); color: var(--text2); text-decoration: none; font-size: 0.82rem; transition: all 0.15s; }
+        .nav a:hover { border-color: var(--accent); color: var(--text); }
+        .nav a.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        /* Timeline */
+        .phase { margin-bottom: 3rem; }
+        .phase-title { font-size: 1.1rem; font-weight: 600; color: var(--accent2); margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
+        .phase-num { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; background: var(--accent); color: #fff; padding: 0.15rem 0.5rem; border-radius: 10px; }
+
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+
+        .step { position: relative; margin-bottom: 1rem; }
+        .step::before { content: ''; position: absolute; left: -2rem; top: 0.55rem; width: 12px; height: 12px; border-radius: 50%; background: var(--elevated); border: 2px solid var(--accent); z-index: 1; }
+        .step.done::before { background: var(--accent); }
+
+        .step-card { background: var(--surface); border: 1px solid var(--border-s); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+        .step-card:hover { border-color: var(--border); }
+        .step-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem; }
+        .step-name { font-weight: 600; font-size: 0.92rem; }
+        .step-id { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+        .step-desc { font-size: 0.82rem; color: var(--text2); }
+        .step-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
+        .tag { font-size: 0.68rem; padding: 0.1rem 0.5rem; border-radius: 10px; background: rgba(108,92,231,0.12); color: var(--accent2); }
+        .tag.gin { background: rgba(46,213,115,0.1); color: var(--green); }
+        .tag.ws { background: rgba(116,185,255,0.1); color: var(--blue); }
+        .tag.db { background: rgba(231,76,111,0.1); color: var(--pink); }
+        .tag.jwt { background: rgba(253,203,110,0.1); color: #fdcb6e; }
+
+        /* Phase links */
+        .phase-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 2rem; }
+        .phase-card { background: var(--surface); border: 1px solid var(--border-s); border-radius: 12px; padding: 1.5rem; text-decoration: none; color: var(--text); transition: all 0.15s; display: block; }
+        .phase-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(108,92,231,0.1); }
+        .phase-card h3 { font-size: 0.95rem; margin-bottom: 0.4rem; }
+        .phase-card p { font-size: 0.8rem; color: var(--text2); line-height: 1.5; }
+        .phase-card .arrow { color: var(--accent); font-size: 0.85rem; margin-top: 0.8rem; display: block; }
+
+        /* Footer */
+        .footer { text-align: center; padding: 2rem 0; border-top: 1px solid var(--border-s); margin-top: 2rem; color: var(--muted); font-size: 0.8rem; }
+        .footer a { color: var(--accent2); text-decoration: none; }
+
+        @media (max-width: 480px) {
+            .container { padding: 2rem 1rem; }
+            .hero-stats { gap: 1.2rem; }
+            .phase-cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <div class="hero-logo">&gt;_ Go Chat</div>
+            <div class="hero-sub">Learning Journey — Java 開發者的 Go 實戰紀錄</div>
+            <div class="hero-stats">
+                <div class="stat"><div class="stat-num">9</div><div class="stat-label">Steps</div></div>
+                <div class="stat"><div class="stat-num">14</div><div class="stat-label">Go Files</div></div>
+                <div class="stat"><div class="stat-num">5</div><div class="stat-label">Packages</div></div>
+            </div>
+        </div>
+
+        <div class="nav">
+            <a href="index.html" class="active">Timeline</a>
+            <a href="01-gin-websocket.html">Phase 1: WebSocket</a>
+            <a href="02-auth-jwt.html">Phase 2: Auth + JWT</a>
+            <a href="03-private-messaging.html">Phase 3: Private Msg</a>
+            <a href="cheatsheet.html">Java → Go</a>
+        </div>
+
+        <!-- Phase 1 -->
+        <div class="phase">
+            <div class="phase-title"><span class="phase-num">PHASE 1</span> WebSocket 聊天室</div>
+            <div class="timeline">
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">專案初始化</span><span class="step-id">Step 00</span></div>
+                        <div class="step-desc">go mod init + 安裝 Gin、gorilla/websocket</div>
+                        <div class="step-tags"><span class="tag gin">go mod</span><span class="tag gin">Gin</span><span class="tag ws">gorilla/websocket</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">Gin HTTP Server</span><span class="step-id">Step 01</span></div>
+                        <div class="step-desc">第一個 Gin server，GET / 回傳文字</div>
+                        <div class="step-tags"><span class="tag gin">gin.Default()</span><span class="tag gin">r.GET</span><span class="tag gin">gin.Context</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">WebSocket 核心架構</span><span class="step-id">Step 02</span></div>
+                        <div class="step-desc">Hub pattern — select 監聽多 channel、每連線兩個 goroutine</div>
+                        <div class="step-tags"><span class="tag ws">Hub</span><span class="tag">select</span><span class="tag">goroutine</span><span class="tag">channel</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">前端整合 + 首次聊天</span><span class="step-id">Step 03</span></div>
+                        <div class="step-desc">瀏覽器聊天介面、StaticFS 路由衝突、writePump bug 修正</div>
+                        <div class="step-tags"><span class="tag ws">WebSocket JS</span><span class="tag gin">StaticFS</span><span class="tag">readPump</span><span class="tag">writePump</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">線上人數 + sendAll 重構</span><span class="step-id">Step 04</span></div>
+                        <div class="step-desc">Hub 推送 Online count、抽 sendAll 消除重複、deadlock 修正</div>
+                        <div class="step-tags"><span class="tag">sendAll</span><span class="tag">deadlock</span><span class="tag">fmt.Appendf</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">訊息時間戳</span><span class="step-id">Step 05</span></div>
+                        <div class="step-desc">time.Now().Format("15:04:05") — Go 的 magic date</div>
+                        <div class="step-tags"><span class="tag">time.Format</span><span class="tag">magic date</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase">
+            <div class="phase-title"><span class="phase-num">PHASE 2</span> 認證與資料庫</div>
+            <div class="timeline">
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">Config 設定管理</span><span class="step-id">Step 06a</span></div>
+                        <div class="step-desc">godotenv 載入 .env、dev / production 環境切換</div>
+                        <div class="step-tags"><span class="tag">godotenv</span><span class="tag">.env</span><span class="tag">APP_ENV</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">PostgreSQL + User Model</span><span class="step-id">Step 06b</span></div>
+                        <div class="step-desc">GORM 連線、User struct（等於 JPA @Entity）、AutoMigrate</div>
+                        <div class="step-tags"><span class="tag db">GORM</span><span class="tag db">PostgreSQL</span><span class="tag db">AutoMigrate</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">註冊 / 登入 API（三層架構）</span><span class="step-id">Step 06c</span></div>
+                        <div class="step-desc">handler → service → repository 分層、bcrypt 加密</div>
+                        <div class="step-tags"><span class="tag">handler</span><span class="tag">service</span><span class="tag">repository</span><span class="tag">bcrypt</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">JWT Token</span><span class="step-id">Step 06d</span></div>
+                        <div class="step-desc">GenerateToken / ParseToken、HS256 簽名、Login 回傳 token</div>
+                        <div class="step-tags"><span class="tag jwt">JWT</span><span class="tag jwt">HS256</span><span class="tag jwt">Claims</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">JWT Middleware</span><span class="step-id">Step 06e</span></div>
+                        <div class="step-desc">gin.HandlerFunc、c.Abort / c.Next、c.Set 傳值給下游</div>
+                        <div class="step-tags"><span class="tag jwt">middleware</span><span class="tag gin">c.Abort</span><span class="tag gin">c.Set</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">保護路由 + 前端重構</span><span class="step-id">Step 06f-g</span></div>
+                        <div class="step-desc">Group + Use 控制 middleware、登入頁 / 聊天室 redesign</div>
+                        <div class="step-tags"><span class="tag gin">r.Group</span><span class="tag gin">r.Use</span><span class="tag">localStorage</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="phase">
+            <div class="phase-title"><span class="phase-num">PHASE 3</span> 私訊與持久化</div>
+            <div class="timeline">
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">私訊功能</span><span class="step-id">Step 07</span></div>
+                        <div class="step-desc">WebSocket JSON 協定、UserID map O(1) 查找、前端左右分欄</div>
+                        <div class="step-tags"><span class="tag ws">JSON 協定</span><span class="tag">map[uint]*Client</span><span class="tag">SendToUser</span></div>
+                    </div>
+                </div>
+                <div class="step done">
+                    <div class="step-card">
+                        <div class="step-head"><span class="step-name">聊天記錄持久化</span><span class="step-id">Step 08</span></div>
+                        <div class="step-desc">Message model、SaveMessage / GetMessages、歷史訊息 API</div>
+                        <div class="step-tags"><span class="tag db">Message</span><span class="tag db">GORM Where</span><span class="tag">GET /api/messages</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deep dive cards -->
+        <h2 style="font-size:1.1rem;color:var(--accent2);margin-bottom:1rem;">Deep Dive</h2>
+        <div class="phase-cards">
+            <a class="phase-card" href="01-gin-websocket.html">
+                <h3>Phase 1: Gin + WebSocket</h3>
+                <p>Hub pattern、select、goroutine per connection、channel 廣播機制</p>
+                <span class="arrow">Read more &rarr;</span>
+            </a>
+            <a class="phase-card" href="02-auth-jwt.html">
+                <h3>Phase 2: Auth + JWT</h3>
+                <p>三層架構、bcrypt、JWT 產生解析、middleware chain、GORM</p>
+                <span class="arrow">Read more &rarr;</span>
+            </a>
+            <a class="phase-card" href="03-private-messaging.html">
+                <h3>Phase 3: Private Messaging</h3>
+                <p>WebSocket JSON 協定設計、O(1) 用戶查找、訊息持久化</p>
+                <span class="arrow">Read more &rarr;</span>
+            </a>
+            <a class="phase-card" href="cheatsheet.html">
+                <h3>Java &rarr; Go Cheatsheet</h3>
+                <p>Spring → Gin、JPA → GORM、JWT、WebSocket 完整對照表</p>
+                <span class="arrow">Read more &rarr;</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            Built while learning Go &mdash; <a href="../../README.md">Back to README</a>
+        </div>
+    </div>
+</body>
+</html>
