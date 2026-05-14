@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a0f;
+            --bg-surface: #12121a;
+            --bg-elevated: #1a1a26;
+            --bg-input: #0e0e16;
+            --border: #2a2a3a;
+            --border-focus: #6c5ce7;
+            --text-primary: #e8e6f0;
+            --text-secondary: #8888a0;
+            --text-muted: #55556a;
+            --accent: #6c5ce7;
+            --accent-hover: #7d6ff0;
+            --accent-glow: rgba(108, 92, 231, 0.25);
+            --danger: #e74c6f;
+            --success: #2ed573;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Ambient background effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(108, 92, 231, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(231, 76, 111, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(46, 213, 115, 0.04) 0%, transparent 50%);
+            animation: ambientDrift 20s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes ambientDrift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-3%, 2%) rotate(3deg); }
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+
+        .auth-brand {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-brand .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--danger) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-brand .tagline {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 300;
+            margin-top: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .auth-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            background: var(--bg-deep);
+            border-radius: var(--radius-sm);
+            padding: 3px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.65rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .auth-tab.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .auth-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.3px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-input.error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(231, 76, 111, 0.15);
+        }
+
+        .form-error {
+            font-size: 0.78rem;
+            color: var(--danger);
+            margin-top: 0.4rem;
+            min-height: 1.2em;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: all 0.2s ease;
+        }
+
+        .form-error.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .submit-btn .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin: 0 auto;
+        }
+
+        .submit-btn.loading .btn-text { display: none; }
+        .submit-btn.loading .spinner { display: block; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 0.7rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            margin-bottom: 1.25rem;
+            display: none;
+            animation: slideIn 0.2s ease;
+        }
+
+        .alert.success {
+            display: block;
+            background: rgba(46, 213, 115, 0.1);
+            border: 1px solid rgba(46, 213, 115, 0.2);
+            color: var(--success);
+        }
+
+        .alert.error {
+            display: block;
+            background: rgba(231, 76, 111, 0.1);
+            border: 1px solid rgba(231, 76, 111, 0.2);
+            color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Noise texture overlay */
+        .noise {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="noise"></div>
+
+    <div class="auth-container">
+        <div class="auth-brand">
+            <div class="logo">&gt;_ Go Chat</div>
+            <div class="tagline">Real-time messaging, powered by Go</div>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+                <button class="auth-tab" onclick="switchTab('register')">Sign Up</button>
+            </div>
+
+            <div id="alert" class="alert"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="loginUser">USERNAME</label>
+                    <input class="form-input" id="loginUser" type="text" placeholder="Enter username" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="loginPass">PASSWORD</label>
+                    <input class="form-input" id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password" required>
+                </div>
+                <button class="submit-btn" type="submit">
+                    <span class="btn-text">Sign In</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" style="display:none" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label class="form-label" for="regUser">USERNAME</label>
+                    <input class="form-input" id="regUser" type="text" placeholder="Choose a username" autocomplete="username" required minlength="3">
+                    <div class="form-error" id="regUserError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPass">PASSWORD</label>
+                    <input class="form-input" id="regPass" type="password" placeholder="Choose a password" autocomplete="new-password" required minlength="6">
+                    <div class="form-error" id="regPassError"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="regPassConfirm">CONFIRM PASSWORD</label>
+                    <input class="form-input" id="regPassConfirm" type="password" placeholder="Confirm password" autocomplete="new-password" required>
+                    <div class="form-error" id="regConfirmError"></div>
+                </div>
+                <button class="submit-btn" type="submit">
+                    <span class="btn-text">Create Account</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+        </div>
+
+        <div class="auth-footer">
+            Built with Go + WebSocket + Gin
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin + '/api';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach((t, i) => {
+                t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+            });
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+            hideAlert();
+        }
+
+        function showAlert(msg, type) {
+            const el = document.getElementById('alert');
+            el.textContent = msg;
+            el.className = 'alert ' + type;
+        }
+
+        function hideAlert() {
+            document.getElementById('alert').className = 'alert';
+        }
+
+        function setLoading(form, loading) {
+            const btn = form.querySelector('.submit-btn');
+            btn.classList.toggle('loading', loading);
+            btn.disabled = loading;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const form = e.target;
+            hideAlert();
+            setLoading(form, true);
+
+            try {
+                const res = await fetch(API + '/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('loginUser').value.trim(),
+                        password: document.getElementById('loginPass').value,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.error || 'Login failed', 'error');
+                    return;
+                }
+
+                // Save token and redirect to chat
+                localStorage.setItem('token', data.token);
+                window.location.href = '/web/chat.html';
+            } catch (err) {
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(form, false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const form = e.target;
+            hideAlert();
+
+            const username = document.getElementById('regUser').value.trim();
+            const password = document.getElementById('regPass').value;
+            const confirm = document.getElementById('regPassConfirm').value;
+
+            // Client-side validation
+            let valid = true;
+
+            if (username.length < 3) {
+                showFieldError('regUser', 'regUserError', 'Username must be at least 3 characters');
+                valid = false;
+            } else {
+                clearFieldError('regUser', 'regUserError');
+            }
+
+            if (password.length < 6) {
+                showFieldError('regPass', 'regPassError', 'Password must be at least 6 characters');
+                valid = false;
+            } else {
+                clearFieldError('regPass', 'regPassError');
+            }
+
+            if (password !== confirm) {
+                showFieldError('regPassConfirm', 'regConfirmError', 'Passwords do not match');
+                valid = false;
+            } else {
+                clearFieldError('regPassConfirm', 'regConfirmError');
+            }
+
+            if (!valid) return;
+
+            setLoading(form, true);
+
+            try {
+                const res = await fetch(API + '/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.error || 'Registration failed', 'error');
+                    return;
+                }
+
+                showAlert('Account created! Signing you in...', 'success');
+
+                // Auto-login after register
+                setTimeout(async () => {
+                    const loginRes = await fetch(API + '/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password }),
+                    });
+                    const loginData = await loginRes.json();
+                    if (loginRes.ok) {
+                        localStorage.setItem('token', loginData.token);
+                        window.location.href = '/web/chat.html';
+                    }
+                }, 800);
+            } catch (err) {
+                showAlert('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(form, false);
+            }
+        }
+
+        function showFieldError(inputId, errorId, msg) {
+            document.getElementById(inputId).classList.add('error');
+            const errEl = document.getElementById(errorId);
+            errEl.textContent = msg;
+            errEl.classList.add('visible');
+        }
+
+        function clearFieldError(inputId, errorId) {
+            document.getElementById(inputId).classList.remove('error');
+            const errEl = document.getElementById(errorId);
+            errEl.classList.remove('visible');
+        }
+
+        // If already has token, redirect to chat
+        if (localStorage.getItem('token')) {
+            window.location.href = '/web/chat.html';
+        }
+    </script>
+</body>
+</html>

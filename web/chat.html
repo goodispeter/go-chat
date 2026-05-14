@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a0f;
+            --bg-surface: #12121a;
+            --bg-elevated: #1a1a26;
+            --bg-hover: #222233;
+            --bg-input: #0e0e16;
+            --border: #2a2a3a;
+            --border-subtle: #1e1e2e;
+            --text-primary: #e8e6f0;
+            --text-secondary: #8888a0;
+            --text-muted: #55556a;
+            --accent: #6c5ce7;
+            --accent-hover: #7d6ff0;
+            --accent-glow: rgba(108, 92, 231, 0.25);
+            --danger: #e74c6f;
+            --success: #2ed573;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.8rem 1.5rem;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-separator {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+        }
+
+        .channel-name {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .online-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .online-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(46, 213, 115, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--danger));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Messages area */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .messages::-webkit-scrollbar { width: 6px; }
+        .messages::-webkit-scrollbar-track { background: transparent; }
+        .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .msg {
+            padding: 0.4rem 0;
+            animation: msgIn 0.2s ease;
+            max-width: 100%;
+        }
+
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-system {
+            text-align: center;
+            padding: 0.6rem 0;
+        }
+
+        .msg-system span {
+            display: inline-block;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            background: var(--bg-elevated);
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .msg-user {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: var(--radius-sm);
+            transition: background 0.1s ease;
+        }
+
+        .msg-user:hover {
+            background: var(--bg-elevated);
+        }
+
+        .msg-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .msg-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .msg-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .msg-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .msg-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .msg-text {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 0.8rem 1.5rem 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.2rem 0.3rem 0.2rem 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            padding: 0.65rem 0;
+            outline: none;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Connection status */
+        .connection-lost {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(231, 76, 111, 0.1);
+            border-top: 1px solid rgba(231, 76, 111, 0.2);
+            font-size: 0.82rem;
+            color: var(--danger);
+        }
+
+        .connection-lost.visible { display: flex; }
+
+        .reconnect-btn {
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        /* Noise texture */
+        .noise {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Ensure content is above noise */
+        .header, .messages, .input-area, .connection-lost { position: relative; z-index: 1; }
+    </style>
+</head>
+<body>
+    <div class="noise"></div>
+
+    <div class="header">
+        <div class="header-left">
+            <span class="header-logo">&gt;_ Go Chat</span>
+            <div class="header-separator"></div>
+            <span class="channel-name"># general</span>
+        </div>
+        <div class="header-right">
+            <div class="online-badge">
+                <div class="online-dot"></div>
+                <span id="onlineCount">0 online</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar"></div>
+                <span id="userName"></span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="connection-lost" id="connectionLost">
+        <span>Connection lost</span>
+        <button class="reconnect-btn" onclick="connectWs()">Reconnect</button>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input id="msgInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')send()" autocomplete="off">
+            <button class="send-btn" onclick="send()" aria-label="Send message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let token = localStorage.getItem('token');
+
+        // Color palette for user avatars
+        const avatarColors = [
+            'linear-gradient(135deg, #6c5ce7, #a78bfa)',
+            'linear-gradient(135deg, #e74c6f, #fd79a8)',
+            'linear-gradient(135deg, #00b894, #55efc4)',
+            'linear-gradient(135deg, #0984e3, #74b9ff)',
+            'linear-gradient(135deg, #fdcb6e, #e17055)',
+            'linear-gradient(135deg, #6c5ce7, #e74c6f)',
+            'linear-gradient(135deg, #00cec9, #81ecec)',
+            'linear-gradient(135deg, #e17055, #fab1a0)',
+        ];
+
+        function getAvatarColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return avatarColors[Math.abs(hash) % avatarColors.length];
+        }
+
+        function getInitials(name) {
+            return name.charAt(0).toUpperCase();
+        }
+
+        // Decode JWT to get username
+        function decodeToken(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload;
+            } catch {
+                return null;
+            }
+        }
+
+        // Init
+        if (!token) {
+            window.location.href = '/web/login.html';
+        } else {
+            const payload = decodeToken(token);
+            if (!payload || !payload.username) {
+                localStorage.removeItem('token');
+                window.location.href = '/web/login.html';
+            } else {
+                document.getElementById('userName').textContent = payload.username;
+                document.getElementById('userAvatar').textContent = getInitials(payload.username);
+                document.getElementById('userAvatar').style.background = getAvatarColor(payload.username);
+                connectWs();
+            }
+        }
+
+        function connectWs() {
+            document.getElementById('connectionLost').classList.remove('visible');
+
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws?token=${encodeURIComponent(token)}`);
+
+            ws.onopen = () => {
+                document.getElementById('msgInput').focus();
+            };
+
+            ws.onmessage = (event) => {
+                addMessage(event.data);
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionLost').classList.add('visible');
+            };
+        }
+
+        function send() {
+            const input = document.getElementById('msgInput');
+            const msg = input.value.trim();
+            if (!msg || !ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(msg);
+            input.value = '';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            if (ws) ws.close();
+            window.location.href = '/web/login.html';
+        }
+
+        function addMessage(text) {
+            // Online count
+            if (text.startsWith('[System] Online:')) {
+                const count = text.split(':').pop().trim();
+                document.getElementById('onlineCount').textContent = count + ' online';
+                return;
+            }
+
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'msg';
+
+            if (text.startsWith('[System]')) {
+                div.classList.add('msg-system');
+                const span = document.createElement('span');
+                span.textContent = text.replace('[System] ', '');
+                div.appendChild(span);
+            } else {
+                div.classList.add('msg-user');
+
+                // Parse: [HH:MM:SS]username: message  or  username: message
+                let time = '';
+                let rest = text;
+
+                const timeMatch = text.match(/^\[(\d{2}:\d{2}:\d{2})\]/);
+                if (timeMatch) {
+                    time = timeMatch[1];
+                    rest = text.substring(timeMatch[0].length);
+                }
+
+                const colonIdx = rest.indexOf(': ');
+                let name = 'Unknown';
+                let msg = rest;
+
+                if (colonIdx > -1) {
+                    name = rest.substring(0, colonIdx);
+                    msg = rest.substring(colonIdx + 2);
+                }
+
+                // Avatar
+                const avatar = document.createElement('div');
+                avatar.className = 'msg-avatar';
+                avatar.textContent = getInitials(name);
+                avatar.style.background = getAvatarColor(name);
+
+                // Body
+                const body = document.createElement('div');
+                body.className = 'msg-body';
+
+                const header = document.createElement('div');
+                header.className = 'msg-header';
+
+                const nameEl = document.createElement('span');
+                nameEl.className = 'msg-name';
+                nameEl.textContent = name;
+                nameEl.style.color = getAvatarColor(name).includes('6c5ce7') ? '#a78bfa' :
+                                      getAvatarColor(name).includes('e74c6f') ? '#fd79a8' :
+                                      getAvatarColor(name).includes('00b894') ? '#55efc4' :
+                                      getAvatarColor(name).includes('0984e3') ? '#74b9ff' :
+                                      getAvatarColor(name).includes('fdcb6e') ? '#fdcb6e' :
+                                      '#a78bfa';
+
+                header.appendChild(nameEl);
+
+                if (time) {
+                    const timeEl = document.createElement('span');
+                    timeEl.className = 'msg-time';
+                    timeEl.textContent = time;
+                    header.appendChild(timeEl);
+                }
+
+                const textEl = document.createElement('div');
+                textEl.className = 'msg-text';
+                textEl.textContent = msg;
+
+                body.appendChild(header);
+                body.appendChild(textEl);
+
+                div.appendChild(avatar);
+                div.appendChild(body);
+            }
+
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
+</body>
+</html>

@@ -10,13 +10,21 @@ import (
 
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 先從 Authorization header 取 token
+		// WebSocket 無法帶 header，所以也支援 query parameter ?token=xxx
+		tokenString := ""
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		if authHeader != "" {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
 			c.Abort()
 			return
 		}
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		claims, err := service.ParseToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})

@@ -19,4 +19,4 @@
 - [ ] 瀏覽器前端介面
 
 ## 目前進度
-Step 06f: JWT 保護 WebSocket 路由，username 從 token 取得
+Step 06g: 前端重構完成（登入/註冊 + 聊天室 redesign + DB 連線）

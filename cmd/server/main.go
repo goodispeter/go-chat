@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"go-chat/internal/chat"
 	"go-chat/internal/config"
+	"go-chat/internal/database"
 	"go-chat/internal/handler"
 	"go-chat/internal/middleware"
+	"go-chat/internal/model"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +15,13 @@ import (
 
 func main() {
 	config.Load()
+	if err := database.Connect(); err != nil {
+		fmt.Println("Failed to connect to database:", err)
+		return
+	}
+	// Auto-create tables
+	database.DB.AutoMigrate(&model.User{})
+
 	hub := chat.NewHub()
 	go hub.Run()
 
@@ -20,7 +30,7 @@ func main() {
 	r := gin.Default()
 	r.StaticFS("/web", http.Dir("./web"))
 	r.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/web/index.html")
+		c.Redirect(http.StatusMovedPermanently, "/web/login.html")
 	})
 	api := r.Group("/api")
 	api.POST("/register", handler.Register)
