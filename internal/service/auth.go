@@ -19,10 +19,13 @@ func Register(username, password string) error {
 	return repository.CreateUser(user)
 }
 
-func Login(username, password string) error {
+func Login(username, password string) (string, error) {
 	user, err := repository.FindByUsername(username)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return "", err
+	}
+	return GenerateToken(user.ID, user.Username)
 }

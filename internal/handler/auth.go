@@ -38,9 +38,10 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := service.Login(req.Username, req.Password); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalud username or password"})
+	token, err := service.Login(req.Username, req.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "login sucess"})
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }

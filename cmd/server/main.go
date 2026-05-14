@@ -23,5 +23,8 @@ func main() {
 	})
 
 	r.GET("/ws", ws.HandleWebSocket)
+	api := r.Group("/api")
+	api.POST("/register", handler.Register)
+	api.POST("/login", handler.Login)
 	r.Run(":8080")
 }
