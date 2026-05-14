@@ -715,9 +715,8 @@
         }
 
         // ==================== Chat ====================
-        function openChat(user) {
+        async function openChat(user) {
             activeChat = user; // { id, name }
-            if (!conversations[user.name]) conversations[user.name] = [];
 
             // UI
             document.getElementById('chatEmpty').style.display = 'none';
@@ -737,6 +736,28 @@
             document.querySelectorAll('.user-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.user === user.name);
             });
+
+            // Load history from DB (only on first open)
+            if (!conversations[user.name]) {
+                conversations[user.name] = [];
+                try {
+                    const res = await fetch(`/api/messages?peer_id=${user.id}`, {
+                        headers: { 'Authorization': 'Bearer ' + token },
+                    });
+                    if (res.ok) {
+                        const messages = await res.json();
+                        const payload = decodeToken(token);
+                        conversations[user.name] = messages.map(m => ({
+                            from: m.sender_id === payload.user_id ? currentUser : user.name,
+                            text: m.content,
+                            time: new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                            mine: m.sender_id === payload.user_id,
+                        }));
+                    }
+                } catch (e) {
+                    console.error('Failed to load history:', e);
+                }
+            }
 
             renderMessages(user.name);
             document.getElementById('msgInput').focus();

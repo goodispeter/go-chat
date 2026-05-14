@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-chat/internal/chat"
+	"go-chat/internal/model"
+	"go-chat/internal/repository"
 	"net/http"
 	"time"
 
@@ -69,6 +71,13 @@ func (h *WsHandler) readPump(conn *websocket.Conn, client *chat.Client) {
 		if msg.Type == "pm" && msg.To > 0 && msg.Text != "" {
 			timestamp := time.Now().Format("15:04:05")
 			formatted := fmt.Sprintf("[PM:%s:%s] %s", client.Name, timestamp, msg.Text)
+
+			repository.SaveMessage(&model.Message{
+				SenderID:   client.UserID,
+				ReceiverID: msg.To,
+				Content:    msg.Text,
+			})
+
 			h.hub.SendToUser(msg.To, []byte(formatted))
 			h.hub.SendToUser(client.UserID, []byte(formatted))
 		}

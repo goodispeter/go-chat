@@ -20,7 +20,7 @@ func main() {
 		return
 	}
 	// Auto-create tables
-	database.DB.AutoMigrate(&model.User{})
+	database.DB.AutoMigrate(&model.User{}, &model.Message{})
 
 	hub := chat.NewHub()
 	go hub.Run()
@@ -39,6 +39,7 @@ func main() {
 	protected := r.Group("/")
 	protected.Use(middleware.JWTAuth())
 	protected.GET("/ws", ws.HandleWebSocket)
+	protected.GET("/api/messages", handler.GetMessages)
 
 	r.Run(":8080")
 }
