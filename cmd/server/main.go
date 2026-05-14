@@ -4,6 +4,7 @@ import (
 	"go-chat/internal/chat"
 	"go-chat/internal/config"
 	"go-chat/internal/handler"
+	"go-chat/internal/middleware"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,10 +22,13 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/web/index.html")
 	})
-
-	r.GET("/ws", ws.HandleWebSocket)
 	api := r.Group("/api")
 	api.POST("/register", handler.Register)
 	api.POST("/login", handler.Login)
+
+	protected := r.Group("/")
+	protected.Use(middleware.JWTAuth())
+	protected.GET("/ws", ws.HandleWebSocket)
+
 	r.Run(":8080")
 }

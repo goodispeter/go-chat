@@ -25,9 +25,9 @@ func NewWsHandler(hub *chat.Hub) *WsHandler {
 }
 
 func (h *WsHandler) HandleWebSocket(c *gin.Context) {
-	name := c.Query("name")
-	if name == "" {
-		name = "anonymous"
+	username := c.GetString("username")
+	if username == "" {
+		username = "anonymous"
 	}
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -37,7 +37,7 @@ func (h *WsHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	client := &chat.Client{
-		Name: name,
+		Name: username,
 		Send: make(chan []byte, 256),
 	}
 

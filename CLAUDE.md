@@ -19,4 +19,4 @@
 - [ ] 瀏覽器前端介面
 
 ## 目前進度
-Step 06e: JWT middleware 完成
+Step 06f: JWT 保護 WebSocket 路由，username 從 token 取得
