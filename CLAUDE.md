@@ -19,4 +19,4 @@
 - [ ] 瀏覽器前端介面
 
 ## 目前進度
-Step 06d: JWT token 產生/解析完成，註冊/登入 API 可用
+Step 06e: JWT middleware 完成
